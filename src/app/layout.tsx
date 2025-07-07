@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Link from 'next/link'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -22,8 +23,8 @@ export default function RootLayout({
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold">🔴 Pokédex</h1>
               <div className="space-x-4">
-                <a href="/" className="hover:text-blue-600">Inicio</a>
-                <a href="/pokemons" className="hover:text-blue-600">Pokémons</a>
+                <Link href="/" className="hover:text-blue-600">Inicio</Link>
+                <Link href="/pokemons" className="hover:text-blue-600">Pokémons</Link>
               </div>
             </div>
           </div>

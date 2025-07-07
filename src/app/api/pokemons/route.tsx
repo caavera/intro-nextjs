@@ -1,5 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// 🔍 Tipos para las respuestas de la API de Pokemon
+interface PokemonApiListItem {
+  name: string
+  url: string
+}
+
+interface PokemonApiListResponse {
+  count: number
+  next: string | null
+  previous: string | null
+  results: PokemonApiListItem[]
+}
+
+interface PokemonType {
+  type: {
+    name: string
+    url: string
+  }
+  slot: number
+}
+
+interface PokemonDetailResponse {
+  id: number
+  name: string
+  sprites: {
+    front_default: string
+  }
+  types: PokemonType[]
+}
+
 // 🔍 Tipos para nuestras respuestas
 interface PokemonListItem {
   name: string
@@ -31,20 +61,20 @@ export async function GET(request: NextRequest) {
       throw new Error('Error al obtener pokémons')
     }
     
-    const data = await res.json()
+    const data: PokemonApiListResponse = await res.json()
     
     // Enriquecer con detalles para búsqueda
     const enrichedPokemons = await Promise.all(
-      data.results.map(async (pokemon: any) => {
+      data.results.map(async (pokemon: PokemonApiListItem) => {
         const detailRes = await fetch(pokemon.url, { cache: 'force-cache' })
-        const detail = await detailRes.json()
+        const detail: PokemonDetailResponse = await detailRes.json()
         
         return {
           name: detail.name,
           url: pokemon.url,
           id: detail.id,
           image: detail.sprites.front_default,
-          types: detail.types.map((t: any) => t.type.name)
+          types: detail.types.map((t: PokemonType) => t.type.name)
         }
       })
     )
@@ -71,4 +101,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}c
