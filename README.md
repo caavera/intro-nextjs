@@ -222,6 +222,36 @@ Crea `src/app/api/pokemons/route.tsx`:
 // src/app/api/pokemons/route.tsx
 import { NextRequest, NextResponse } from 'next/server'
 
+// 🔍 Tipos para las respuestas de la API de Pokemon
+interface PokemonApiListItem {
+  name: string
+  url: string
+}
+
+interface PokemonApiListResponse {
+  count: number
+  next: string | null
+  previous: string | null
+  results: PokemonApiListItem[]
+}
+
+interface PokemonType {
+  type: {
+    name: string
+    url: string
+  }
+  slot: number
+}
+
+interface PokemonDetailResponse {
+  id: number
+  name: string
+  sprites: {
+    front_default: string
+  }
+  types: PokemonType[]
+}
+
 // 🔍 Tipos para nuestras respuestas
 interface PokemonListItem {
   name: string
@@ -253,20 +283,20 @@ export async function GET(request: NextRequest) {
       throw new Error('Error al obtener pokémons')
     }
     
-    const data = await res.json()
+    const data: PokemonApiListResponse = await res.json()
     
     // Enriquecer con detalles para búsqueda
     const enrichedPokemons = await Promise.all(
-      data.results.map(async (pokemon: any) => {
+      data.results.map(async (pokemon: PokemonApiListItem) => {
         const detailRes = await fetch(pokemon.url, { cache: 'force-cache' })
-        const detail = await detailRes.json()
+        const detail: PokemonDetailResponse = await detailRes.json()
         
         return {
           name: detail.name,
           url: pokemon.url,
           id: detail.id,
           image: detail.sprites.front_default,
-          types: detail.types.map((t: any) => t.type.name)
+          types: detail.types.map((t: PokemonType) => t.type.name)
         }
       })
     )
@@ -364,6 +394,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 - **Manejo de errores**: Try/catch con respuestas HTTP apropiadas
 - **Cache**: Optimización en el servidor
 - **Transformación de datos**: Adaptamos la respuesta externa a nuestra API
+- **Tipado fuerte**: Interfaces específicas para cada tipo de dato (evitar `any`)
+- **TypeScript en APIs**: Tipado tanto para requests como responses
 
 ---
 
@@ -747,6 +779,7 @@ export async function fetchPokemonList(limit = 20): Promise<{ results: Pokemon[]
 // src/app/layout.tsx
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Link from 'next/link'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -769,8 +802,8 @@ export default function RootLayout({
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold">🔴 Pokédex</h1>
               <div className="space-x-4">
-                <a href="/" className="hover:text-blue-600">Inicio</a>
-                <a href="/pokemons" className="hover:text-blue-600">Pokémons</a>
+                <Link href="/" className="hover:text-blue-600">Inicio</Link>
+                <Link href="/pokemons" className="hover:text-blue-600">Pokémons</Link>
               </div>
             </div>
           </div>
@@ -802,10 +835,20 @@ export default function RootLayout({
 - **API propia**: Las páginas consumen nuestras APIs, no directamente APIs externas
 - **Separación de responsabilidades**: Frontend para UI, API Routes para lógica de negocio
 - **Componentización**: Componentes reutilizables desde el principio
-- **Tipado fuerte**: TypeScript en todo el proyecto
+- **Tipado fuerte**: TypeScript en todo el proyecto con interfaces específicas (sin `any`)
+- **Navegación optimizada**: Uso de `<Link>` de Next.js para navegación interna
+- **Linting estricto**: ESLint configurado para Next.js y TypeScript
 - **Manejo de errores**: Control de errores tanto en cliente como servidor
 - **Cache estratégico**: Optimización de rendimiento
 - **Código limpio**: Sin duplicación ni refactorización innecesaria
+
+### 🎯 Ventajas del código limpio y tipado:
+
+- **Detección temprana de errores**: TypeScript + ESLint previenen errores comunes
+- **Mejor IntelliSense**: Autocompletado y sugerencias más precisas
+- **Navegación más rápida**: Componentes `<Link>` mejoran la experiencia del usuario
+- **Mantenibilidad**: Código más fácil de entender y modificar
+- **Escalabilidad**: Estructura preparada para crecer
 
 ### ⚠️ Cambios importantes en Next.js 15:
 
@@ -847,6 +890,15 @@ export default async function Page({ params }: PageProps) {
 
 ### 🧪 Probar tu aplicación:
 
+**Comandos de desarrollo:**
+```bash
+npm run dev          # Servidor de desarrollo
+npm run build        # Build para producción
+npm run start        # Servidor de producción
+npm run lint         # Verificar errores de linting
+npm run lint -- --fix # Corregir errores de linting automáticamente
+```
+
 **APIs creadas:**
 - `http://localhost:3000/api/pokemons` - Lista de pokémons
 - `http://localhost:3000/api/pokemons/pikachu` - Detalle de un pokémon
@@ -865,6 +917,43 @@ Error: Route "/pokemons/[name]" used `params.name`. `params` should be awaited b
 ```
 
 **Solución:** Await el objeto params antes de acceder a sus propiedades:
+
+**Error: TypeScript `any` types**
+```bash
+Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+```
+
+**¿Por qué es importante?** El tipo `any` elimina los beneficios de TypeScript y puede causar errores en tiempo de ejecución.
+
+**Solución:** Definir interfaces específicas para los tipos de datos:
+```tsx
+// ❌ Incorrecto
+const pokemon: any = await res.json()
+
+// ✅ Correcto
+interface PokemonApiListItem {
+  name: string
+  url: string
+}
+const pokemon: PokemonApiListItem = await res.json()
+```
+
+**Error: HTML anchor tags en Next.js**
+```bash
+Error: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead.
+```
+
+**¿Por qué es importante?** Los `<a>` tags causan navegación completa de página, mientras que `<Link>` permite navegación del lado del cliente (más rápida).
+
+**Solución:** Usar componentes Link para navegación interna:
+```tsx
+// ❌ Incorrecto
+<a href="/pokemons">Pokémons</a>
+
+// ✅ Correcto
+import Link from 'next/link'
+<Link href="/pokemons">Pokémons</Link>
+```
 ```tsx
 // ❌ Incorrecto
 interface PageProps {
