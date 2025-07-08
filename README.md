@@ -160,6 +160,7 @@ Crea `src/components/PokemonCard.tsx`:
 ```tsx
 // src/components/PokemonCard.tsx
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 interface PokemonCardProps {
@@ -181,11 +182,12 @@ export function PokemonCard({ name, url }: PokemonCardProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <img 
+          <Image 
             src={imageUrl}
             alt={name}
+            width={80}
+            height={80}
             className="w-20 h-20 mx-auto mb-2"
-            loading="lazy"
           />
           <p className="text-sm text-gray-500">#{pokemonId}</p>
         </CardContent>
@@ -487,6 +489,7 @@ Crea `src/app/pokemons/[name]/page.tsx`:
 // src/app/pokemons/[name]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '../../../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Badge } from '../../../components/ui/badge'
@@ -561,14 +564,18 @@ export default async function PokemonDetailPage({ params }: PageProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-center space-x-4">
-              <img 
+              <Image 
                 src={pokemon.sprites.front_default} 
                 alt={`${pokemon.name} frontal`}
+                width={128}
+                height={128}
                 className="w-32 h-32"
               />
-              <img 
+              <Image 
                 src={pokemon.sprites.back_default} 
                 alt={`${pokemon.name} trasero`}
+                width={128}
+                height={128}
                 className="w-32 h-32"
               />
             </div>
@@ -653,6 +660,7 @@ El componente `src/components/SearchPokemon.tsx` ya está creado con este códig
 'use client' // 🎯 Marca como Client Component
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -706,7 +714,7 @@ export function SearchPokemon() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {results.map((pokemon) => (
               <div key={pokemon.id} className="flex items-center gap-3 p-3 border rounded">
-                <img src={pokemon.image} alt={pokemon.name} className="w-12 h-12" />
+                <Image src={pokemon.image} alt={pokemon.name} width={48} height={48} className="w-12 h-12" />
                 <div>
                   <p className="font-semibold capitalize">{pokemon.name}</p>
                   <p className="text-sm text-gray-500">
@@ -765,7 +773,7 @@ export function Pagination({ currentPage, totalPages, baseUrl }: PaginationProps
     const maxPages = 5
     
     let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2))
-    let endPage = Math.min(totalPages, startPage + maxPages - 1)
+    const endPage = Math.min(totalPages, startPage + maxPages - 1)
     
     // Ajustar si estamos cerca del final
     if (endPage - startPage + 1 < maxPages) {
@@ -1064,6 +1072,46 @@ export async function fetchPokemonList(limit = 20): Promise<{ results: Pokemon[]
 }
 ```
 
+### 🖼️ Optimización de imágenes con `next/image`
+
+Para mejor rendimiento y optimización automática, actualizamos todas las imágenes para usar el componente `Image` de Next.js:
+
+```tsx
+// ❌ Antes: elemento img básico
+<img src={imageUrl} alt={name} className="w-20 h-20" />
+
+// ✅ Después: componente Image optimizado
+import Image from 'next/image'
+<Image src={imageUrl} alt={name} width={80} height={80} className="w-20 h-20" />
+```
+
+**Configuración en `next.config.ts`:**
+```ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+        port: '',
+        pathname: '/PokeAPI/sprites/master/sprites/pokemon/**',
+      },
+    ],
+  },
+};
+
+export default nextConfig;
+```
+
+**Beneficios del componente Image:**
+- ✅ **Optimización automática**: Redimensiona y comprime imágenes
+- ✅ **Lazy loading**: Carga imágenes solo cuando son visibles
+- ✅ **WebP automático**: Convierte a formatos modernos si el navegador lo soporta
+- ✅ **LCP mejorado**: Mejora Core Web Vitals automáticamente
+- ✅ **Placeholder**: Evita layout shift durante la carga
+
 ### 🎨 Actualizar layout global en `src/app/layout.tsx`:
 
 ```tsx
@@ -1128,6 +1176,8 @@ export default function RootLayout({
 - **Componentización**: Componentes reutilizables desde el principio
 - **Tipado fuerte**: TypeScript en todo el proyecto con interfaces específicas (sin `any`)
 - **Navegación optimizada**: Uso de `<Link>` de Next.js para navegación interna
+- **Imágenes optimizadas**: Componente `<Image>` de Next.js para mejor rendimiento
+- **Paginación eficiente**: Navegación por páginas con URLs amigables
 - **Linting estricto**: ESLint configurado para Next.js y TypeScript
 - **Manejo de errores**: Control de errores tanto en cliente como servidor
 - **Cache estratégico**: Optimización de rendimiento

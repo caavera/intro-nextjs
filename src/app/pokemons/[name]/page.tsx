@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '../../../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Badge } from '../../../components/ui/badge'
@@ -74,14 +75,18 @@ export default async function PokemonDetailPage({ params }: PageProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-center space-x-4">
-              <img 
+              <Image 
                 src={pokemon.sprites.front_default} 
                 alt={`${pokemon.name} frontal`}
+                width={128}
+                height={128}
                 className="w-32 h-32"
               />
-              <img 
+              <Image 
                 src={pokemon.sprites.back_default} 
                 alt={`${pokemon.name} trasero`}
+                width={128}
+                height={128}
                 className="w-32 h-32"
               />
             </div>

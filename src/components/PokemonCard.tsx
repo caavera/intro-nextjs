@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 interface PokemonCardProps {
@@ -20,11 +21,12 @@ export function PokemonCard({ name, url }: PokemonCardProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <img 
+          <Image 
             src={imageUrl}
             alt={name}
+            width={80}
+            height={80}
             className="w-20 h-20 mx-auto mb-2"
-            loading="lazy"
           />
           <p className="text-sm text-gray-500">#{pokemonId}</p>
         </CardContent>

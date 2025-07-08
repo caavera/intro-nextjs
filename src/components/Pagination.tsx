@@ -14,7 +14,7 @@ export function Pagination({ currentPage, totalPages, baseUrl }: PaginationProps
     const maxPages = 5
     
     let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2))
-    let endPage = Math.min(totalPages, startPage + maxPages - 1)
+    const endPage = Math.min(totalPages, startPage + maxPages - 1)
     
     // Ajustar si estamos cerca del final
     if (endPage - startPage + 1 < maxPages) {

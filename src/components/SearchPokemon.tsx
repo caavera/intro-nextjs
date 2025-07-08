@@ -1,6 +1,7 @@
 'use client' // 🎯 Marca como Client Component
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -54,7 +55,7 @@ export function SearchPokemon() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {results.map((pokemon) => (
               <div key={pokemon.id} className="flex items-center gap-3 p-3 border rounded">
-                <img src={pokemon.image} alt={pokemon.name} className="w-12 h-12" />
+                <Image src={pokemon.image} alt={pokemon.name} width={48} height={48} className="w-12 h-12" />
                 <div>
                   <p className="font-semibold capitalize">{pokemon.name}</p>
                   <p className="text-sm text-gray-500">
