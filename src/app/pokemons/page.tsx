@@ -1,6 +1,7 @@
 import { Badge } from '../../components/ui/badge'
 import { PokemonCard } from '../../components/PokemonCard'
 import { SearchPokemon } from '../../components/SearchPokemon'
+import { Pagination } from '../../components/Pagination'
 
 // 🔍 Tipos para TypeScript
 interface Pokemon {
@@ -11,11 +12,19 @@ interface Pokemon {
 interface ApiResponse {
   pokemons: Pokemon[]
   total: number
+  pagination: {
+    currentPage: number
+    totalPages: number
+    hasNext: boolean
+    hasPrevious: boolean
+    limit: number
+    offset: number
+  }
 }
 
 // 🌐 Función para obtener datos desde NUESTRA API
-async function getPokemons(): Promise<ApiResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/pokemons`, {
+async function getPokemons(page: number = 1): Promise<ApiResponse> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/pokemons?page=${page}`, {
     cache: 'force-cache'
   })
   
@@ -27,8 +36,15 @@ async function getPokemons(): Promise<ApiResponse> {
 }
 
 // 🧩 Server Component (por defecto en app/)
-export default async function PokemonsPage() {
-  const data = await getPokemons()
+// Ahora recibe searchParams para la paginación
+interface PageProps {
+  searchParams: Promise<{ page?: string }>
+}
+
+export default async function PokemonsPage({ searchParams }: PageProps) {
+  const { page } = await searchParams
+  const currentPage = parseInt(page || '1')
+  const data = await getPokemons(currentPage)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -53,6 +69,13 @@ export default async function PokemonsPage() {
           />
         ))}
       </div>
+
+      {/* Componente de paginación */}
+      <Pagination
+        currentPage={data.pagination.currentPage}
+        totalPages={data.pagination.totalPages}
+        baseUrl="/pokemons"
+      />
     </div>
   )
 }

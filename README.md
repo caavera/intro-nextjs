@@ -733,6 +733,297 @@ export function SearchPokemon() {
 
 ---
 
+## 📄 Paso 9.5: Paginación de la lista de Pokémons
+
+Una funcionalidad esencial para cualquier lista larga es la **paginación**. Vamos a implementar una paginación completa que incluya:
+
+- ✅ Navegación por páginas
+- ✅ Información de página actual
+- ✅ Botones Anterior/Siguiente
+- ✅ Navegación directa a páginas específicas
+- ✅ Soporte en la API con `offset` y `limit`
+
+### 🧩 Crear componente de paginación
+
+Primero, creamos un componente reutilizable en `src/components/Pagination.tsx`:
+
+```tsx
+// src/components/Pagination.tsx
+import Link from 'next/link'
+import { Button } from './ui/button'
+
+interface PaginationProps {
+  currentPage: number
+  totalPages: number
+  baseUrl: string // URL base para la paginación (ej: "/pokemons")
+}
+
+export function Pagination({ currentPage, totalPages, baseUrl }: PaginationProps) {
+  // Calcular páginas a mostrar (máximo 5 páginas)
+  const getPageNumbers = () => {
+    const pages = []
+    const maxPages = 5
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2))
+    let endPage = Math.min(totalPages, startPage + maxPages - 1)
+    
+    // Ajustar si estamos cerca del final
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - maxPages + 1)
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+    
+    return pages
+  }
+
+  const pageNumbers = getPageNumbers()
+
+  return (
+    <div className="flex items-center justify-center space-x-2 py-8">
+      {/* Botón anterior */}
+      <Link href={currentPage > 1 ? `${baseUrl}?page=${currentPage - 1}` : '#'}>
+        <Button 
+          variant={currentPage > 1 ? "outline" : "ghost"} 
+          disabled={currentPage <= 1}
+          className="disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          ← Anterior
+        </Button>
+      </Link>
+
+      {/* Primera página */}
+      {pageNumbers[0] > 1 && (
+        <>
+          <Link href={`${baseUrl}?page=1`}>
+            <Button variant="outline">1</Button>
+          </Link>
+          {pageNumbers[0] > 2 && <span className="px-2">...</span>}
+        </>
+      )}
+
+      {/* Páginas numeradas */}
+      {pageNumbers.map((page) => (
+        <Link key={page} href={`${baseUrl}?page=${page}`}>
+          <Button 
+            variant={page === currentPage ? "default" : "outline"}
+            className={page === currentPage ? "bg-blue-600" : ""}
+          >
+            {page}
+          </Button>
+        </Link>
+      ))}
+
+      {/* Última página */}
+      {pageNumbers[pageNumbers.length - 1] < totalPages && (
+        <>
+          {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
+            <span className="px-2">...</span>
+          )}
+          <Link href={`${baseUrl}?page=${totalPages}`}>
+            <Button variant="outline">{totalPages}</Button>
+          </Link>
+        </>
+      )}
+
+      {/* Botón siguiente */}
+      <Link href={currentPage < totalPages ? `${baseUrl}?page=${currentPage + 1}` : '#'}>
+        <Button 
+          variant={currentPage < totalPages ? "outline" : "ghost"} 
+          disabled={currentPage >= totalPages}
+          className="disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Siguiente →
+        </Button>
+      </Link>
+    </div>
+  )
+}
+```
+
+### 🔍 Conceptos del componente de paginación:
+
+- **Lógica de páginas visibles**: Muestra máximo 5 páginas, centradas en la página actual
+- **Elipsis (`...`)**: Indica páginas omitidas cuando hay muchas páginas
+- **Estados disabled**: Botones deshabilitados cuando no se puede navegar
+- **Link optimizado**: Usa `<Link>` de Next.js para navegación rápida
+- **Responsive**: Funciona bien en móviles y desktop
+
+### 🛠 Actualizar API para soportar paginación
+
+Modifica `src/app/api/pokemons/route.tsx` para soportar `offset` y devolver información de paginación:
+
+```tsx
+// src/app/api/pokemons/route.tsx
+// Actualizar interface ApiResponse
+interface ApiResponse {
+  pokemons: PokemonListItem[]
+  total: number
+  search?: string
+  pagination: {
+    currentPage: number
+    totalPages: number
+    hasNext: boolean
+    hasPrevious: boolean
+    limit: number
+    offset: number
+  }
+}
+
+// 📦 GET - Obtener lista de pokémons (con búsqueda y paginación)
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const limit = parseInt(searchParams.get('limit') || '20')
+  const page = parseInt(searchParams.get('page') || '1')
+  const search = searchParams.get('search') || ''
+  
+  // Calcular offset basado en la página
+  const offset = (page - 1) * limit
+  
+  try {
+    // Obtener lista básica con offset
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`, {
+      cache: 'force-cache'
+    })
+    
+    // ... resto del código igual ...
+    
+    // Calcular información de paginación
+    const totalPages = Math.ceil(data.count / limit)
+    
+    const response: ApiResponse = {
+      pokemons: filteredPokemons,
+      total: data.count,
+      search,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrevious: page > 1,
+        limit,
+        offset
+      }
+    }
+    
+    return NextResponse.json(response)
+  }
+  // ... manejo de errores igual ...
+}
+```
+
+### 📄 Actualizar página de pokémons
+
+Modifica `src/app/pokemons/page.tsx` para usar `searchParams` y mostrar la paginación:
+
+```tsx
+// src/app/pokemons/page.tsx
+import { Badge } from '../../components/ui/badge'
+import { PokemonCard } from '../../components/PokemonCard'
+import { SearchPokemon } from '../../components/SearchPokemon'
+import { Pagination } from '../../components/Pagination'
+
+// Actualizar interface ApiResponse
+interface ApiResponse {
+  pokemons: Pokemon[]
+  total: number
+  pagination: {
+    currentPage: number
+    totalPages: number
+    hasNext: boolean
+    hasPrevious: boolean
+    limit: number
+    offset: number
+  }
+}
+
+// Actualizar función para incluir página
+async function getPokemons(page: number = 1): Promise<ApiResponse> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/pokemons?page=${page}`, {
+    cache: 'force-cache'
+  })
+  
+  if (!res.ok) {
+    throw new Error('Error al cargar pokémons')
+  }
+  
+  return res.json()
+}
+
+// Agregar searchParams a la página
+interface PageProps {
+  searchParams: Promise<{ page?: string }>
+}
+
+export default async function PokemonsPage({ searchParams }: PageProps) {
+  const { page } = await searchParams
+  const currentPage = parseInt(page || '1')
+  const data = await getPokemons(currentPage)
+  
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold">Pokédex</h1>
+        <Badge variant="secondary" className="text-lg px-4 py-2">
+          {data.total} Pokémons total
+        </Badge>
+      </div>
+
+      {/* Componente de búsqueda */}
+      <div className="mb-8">
+        <SearchPokemon />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {data.pokemons.map((pokemon) => (
+          <PokemonCard 
+            key={pokemon.name} 
+            name={pokemon.name} 
+            url={pokemon.url} 
+          />
+        ))}
+      </div>
+
+      {/* Componente de paginación */}
+      <Pagination
+        currentPage={data.pagination.currentPage}
+        totalPages={data.pagination.totalPages}
+        baseUrl="/pokemons"
+      />
+    </div>
+  )
+}
+```
+
+### 🔍 Conceptos importantes de paginación:
+
+- **searchParams**: Props de Next.js 15 que requiere `await` para acceder a parámetros de consulta
+- **Offset calculation**: `(page - 1) * limit` para calcular desde qué pokémon empezar
+- **URL con parámetros**: `/pokemons?page=2` navega a la página 2
+- **Cache strategy**: Mantenemos cache para mejorar rendimiento
+- **Server Component**: La paginación funciona del lado del servidor, mejor SEO
+
+### ✨ Funcionalidades de la paginación:
+
+- **📄 20 pokémons por página**: Carga rápida y navegación fluida
+- **🔢 Números de página**: Navegación directa a cualquier página
+- **⬅️➡️ Botones anterior/siguiente**: Navegación secuencial
+- **💫 Indicador visual**: Página actual resaltada
+- **📱 Responsive**: Funciona perfectamente en móviles
+- **⚡ Navegación rápida**: Sin recarga de página completa
+- **🔄 Cache inteligente**: Páginas visitadas se cargan más rápido
+
+### 🎯 Resultado:
+
+Ahora puedes navegar por **todos los 1000+ pokémons** de la PokeAPI:
+
+- `http://localhost:3000/pokemons` - Primera página (pokémons 1-20)
+- `http://localhost:3000/pokemons?page=2` - Segunda página (pokémons 21-40)
+- `http://localhost:3000/pokemons?page=50` - Página 50 (pokémons 981-1000)
+
+---
+
 ## 🚀 Paso 10: Optimizaciones y mejores prácticas
 
 ### 📁 Crear utilidades en `src/lib/pokemon.ts`:
